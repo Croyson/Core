@@ -35,7 +35,6 @@ object DataBaseModule extends TwitterModule {
       .withDatabase(mysqlDbNameFlag())
       .newRichClient("%s:%s".format(mysqlHostFlag(), mysqlPortFlag()))
     val redisClient = Client("%s:%s".format(redisHostFlag(), redisPortFlag()))
-    redisClient.select(9)
     new AppDatabase(connector, client,redisClient)
   }
 
