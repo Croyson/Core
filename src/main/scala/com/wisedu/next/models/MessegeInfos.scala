@@ -16,7 +16,7 @@ case class MessageInfo(messageId: UUID, feedId: String, messageType: Int, conten
                        cTime: DateTime, cUserId: String, collectNum: Long, updateNum: Long, updateNumD: Long,
                        forwardNum: Long, forwardNumD: Long, likeNum: Long, unLikeNum: Long, readNum: Long, updateType: Int,
                        threshHold: Int, isAnonymous: Int, imgUrls: String, fuzzyImgs: String, updateLevel: Int, isDelete: Int, groupId: String,
-                       mImgs: String, isTop: Int, isRecommend: Int, replyMsgId: String, replyUserId: String)
+                       mImgs: String, isTop: Int, isRecommend: Int, replyMsgId: String, replyUserId: String, linkTitle: String, linkImg: String, linkUrl: String)
 
 case class MsgRelation(referenceUserId: String, referenceMsgId: String, referencedUserId: String, referencedMsgId: String,
                        opType: Int, cTime: DateTime, pageIndex: Int)
@@ -58,11 +58,12 @@ abstract class ConcreteMessageInfos(val client: MysqlClient, val redisClient: Cl
       rst => {
         val sql =
           """insert into messageInfos(messageId,feedId,messageType,cTime,cUserId,collectNum,updateNum,updateNumD,forwardNum,forwardNumD,likeNum,unLikeNum,readNum,
-                    updateType,threshHold,isAnonymous,imgUrls,fuzzyImgs,updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId)
-                    VALUES(?,?,?,now(),?,0,0,0,0,0,0,0,0,?,?,?,?,?,?,0,?,?,?,0,?,?)"""
+                    updateType,threshHold,isAnonymous,imgUrls,fuzzyImgs,updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId, linkTitle, linkImg, linkUrl)
+                    VALUES(?,?,?,now(),?,0,0,0,0,0,0,0,0,?,?,?,?,?,?,0,?,?,?,0,?,?,?,?,?)"""
         client.prepare(sql)(messageInfo.messageId.toString, messageInfo.feedId.toString, messageInfo.messageType, messageInfo.cUserId,
           messageInfo.updateType, messageInfo.threshHold, messageInfo.isAnonymous, messageInfo.imgUrls, messageInfo.fuzzyImgs,
-          messageInfo.updateLevel, messageInfo.groupId, messageInfo.mImgs, messageInfo.isTop, messageInfo.replyMsgId, messageInfo.replyUserId)
+          messageInfo.updateLevel, messageInfo.groupId, messageInfo.mImgs, messageInfo.isTop, messageInfo.replyMsgId, messageInfo.replyUserId,
+          messageInfo.linkTitle, messageInfo.linkImg, messageInfo.linkUrl)
 
       }
     }
@@ -273,9 +274,21 @@ abstract class ConcreteMessageInfos(val client: MysqlClient, val redisClient: Cl
           case StringValue(str) => str
           case _ => ""
         }.get
+         val linkTitle = row("linkTitle").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+        val linkImg = row("linkImg").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+         val linkUrl = row("linkUrl").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
         MessageInfo(UUID.fromString(messageId),feedId,messageType,content, new DateTime(cTime),cUserId,collectNum,updateNum,updateNumD,
         forwardNum,forwardNumD,likeNum,unLikeNum,readNum,updateType,threshHold,isAnonymous,imgUrls,fuzzyImgs,
-        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId)
+        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId,linkTitle,linkImg,linkUrl)
       }.map(_.headOption)
     }
   }
@@ -393,16 +406,29 @@ abstract class ConcreteMessageInfos(val client: MysqlClient, val redisClient: Cl
           case StringValue(str) => str
           case _ => ""
         }.get
+        val linkTitle = row("linkTitle").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+        val linkImg = row("linkImg").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+         val linkUrl = row("linkUrl").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
         MessageInfo(UUID.fromString(messageId),feedId,messageType,"", new DateTime(cTime),cUserId,collectNum,updateNum,updateNumD,
         forwardNum,forwardNumD,likeNum,unLikeNum,readNum,updateType,threshHold,isAnonymous,imgUrls,fuzzyImgs,
-        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId)
+        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId,linkTitle,linkImg,linkUrl)
       }.flatMap {
       msgs => Future.collect(msgs.map {
         msg => select.where(_.messageId eqs msg.messageId).get().map {
           case Some(t) => MessageInfo(msg.messageId, msg.feedId, msg.messageType, t.content, msg.cTime, msg.cUserId,
             msg.collectNum, msg.updateNum, msg.updateNumD, msg.forwardNum, msg.forwardNumD, msg.likeNum, msg.unLikeNum,
             msg.readNum, msg.updateType, msg.threshHold, msg.isAnonymous, msg.imgUrls, msg.fuzzyImgs,
-            msg.updateLevel, msg.isDelete, msg.groupId, msg.mImgs, msg.isTop, msg.isRecommend, msg.replyMsgId, msg.replyUserId)
+            msg.updateLevel, msg.isDelete, msg.groupId, msg.mImgs, msg.isTop, msg.isRecommend, msg.replyMsgId,
+            msg.replyUserId, msg.linkTitle, msg.linkImg, msg.linkUrl)
           case None => msg
         }
       })
@@ -524,16 +550,29 @@ abstract class ConcreteMessageInfos(val client: MysqlClient, val redisClient: Cl
           case StringValue(str) => str
           case _ => ""
         }.get
+       val linkTitle = row("linkTitle").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+        val linkImg = row("linkImg").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+         val linkUrl = row("linkUrl").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
         MessageInfo(UUID.fromString(messageId),feedId,messageType,"", new DateTime(cTime),cUserId,collectNum,updateNum,updateNumD,
         forwardNum,forwardNumD,likeNum,unLikeNum,readNum,updateType,threshHold,isAnonymous,imgUrls,fuzzyImgs,
-        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId)
+        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId,linkTitle,linkImg,linkUrl)
       }.flatMap {
       msgs => Future.collect(msgs.map {
         msg => select.where(_.messageId eqs msg.messageId).get().map {
           case Some(t) => MessageInfo(msg.messageId, msg.feedId, msg.messageType, t.content, msg.cTime, msg.cUserId,
             msg.collectNum, msg.updateNum, msg.updateNumD, msg.forwardNum, msg.forwardNumD, msg.likeNum, msg.unLikeNum,
             msg.readNum, msg.updateType, msg.threshHold, msg.isAnonymous, msg.imgUrls, msg.fuzzyImgs,
-            msg.updateLevel, msg.isDelete, msg.groupId, msg.mImgs, msg.isTop, msg.isRecommend, msg.replyMsgId, msg.replyUserId)
+            msg.updateLevel, msg.isDelete, msg.groupId, msg.mImgs, msg.isTop, msg.isRecommend, msg.replyMsgId,
+            msg.replyUserId, msg.linkTitle, msg.linkImg, msg.linkUrl)
           case None => msg
         }
       })
@@ -698,16 +737,29 @@ abstract class ConcreteMessageInfos(val client: MysqlClient, val redisClient: Cl
           case StringValue(str) => str
           case _ => ""
         }.get
+       val linkTitle = row("linkTitle").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+        val linkImg = row("linkImg").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+         val linkUrl = row("linkUrl").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
         MessageInfo(UUID.fromString(messageId),feedId,messageType,"", new DateTime(cTime),cUserId,collectNum,updateNum,updateNumD,
         forwardNum,forwardNumD,likeNum,unLikeNum,readNum,updateType,threshHold,isAnonymous,imgUrls,fuzzyImgs,
-        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId)
+        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId,linkTitle,linkImg,linkUrl)
       }.flatMap {
       msgs => Future.collect(msgs.map {
         msg => select.where(_.messageId eqs msg.messageId).get().map {
           case Some(t) => MessageInfo(msg.messageId, msg.feedId, msg.messageType, t.content, msg.cTime, msg.cUserId,
             msg.collectNum, msg.updateNum, msg.updateNumD, msg.forwardNum, msg.forwardNumD, msg.likeNum, msg.unLikeNum,
             msg.readNum, msg.updateType, msg.threshHold, msg.isAnonymous, msg.imgUrls, msg.fuzzyImgs,
-            msg.updateLevel, msg.isDelete, msg.groupId, msg.mImgs, msg.isTop, msg.isRecommend, msg.replyMsgId, msg.replyUserId)
+            msg.updateLevel, msg.isDelete, msg.groupId, msg.mImgs, msg.isTop, msg.isRecommend, msg.replyMsgId,
+            msg.replyUserId, msg.linkTitle, msg.linkImg, msg.linkUrl)
           case None => msg
         }
       })
@@ -824,16 +876,29 @@ abstract class ConcreteMessageInfos(val client: MysqlClient, val redisClient: Cl
           case StringValue(str) => str
           case _ => ""
         }.get
+        val linkTitle = row("linkTitle").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+        val linkImg = row("linkImg").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+         val linkUrl = row("linkUrl").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
         MessageInfo(UUID.fromString(messageId),feedId,messageType,"", new DateTime(cTime),cUserId,collectNum,updateNum,updateNumD,
         forwardNum,forwardNumD,likeNum,unLikeNum,readNum,updateType,threshHold,isAnonymous,imgUrls,fuzzyImgs,
-        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId)
+        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId,linkTitle,linkImg,linkUrl)
       }.flatMap {
       msgs => Future.collect(msgs.map {
         msg => select.where(_.messageId eqs msg.messageId).get().map {
           case Some(t) => MessageInfo(msg.messageId, msg.feedId, msg.messageType, t.content, msg.cTime, msg.cUserId,
             msg.collectNum, msg.updateNum, msg.updateNumD, msg.forwardNum, msg.forwardNumD, msg.likeNum, msg.unLikeNum,
             msg.readNum, msg.updateType, msg.threshHold, msg.isAnonymous, msg.imgUrls, msg.fuzzyImgs,
-            msg.updateLevel, msg.isDelete, msg.groupId, msg.mImgs, msg.isTop, msg.isRecommend, msg.replyMsgId, msg.replyUserId)
+            msg.updateLevel, msg.isDelete, msg.groupId, msg.mImgs, msg.isTop, msg.isRecommend, msg.replyMsgId,
+            msg.replyUserId, msg.linkTitle, msg.linkImg, msg.linkUrl)
           case None => msg
         }
       })
@@ -967,16 +1032,29 @@ abstract class ConcreteMessageInfos(val client: MysqlClient, val redisClient: Cl
           case StringValue(str) => str
           case _ => ""
         }.get
+       val linkTitle = row("linkTitle").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+        val linkImg = row("linkImg").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+         val linkUrl = row("linkUrl").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
         MessageInfo(UUID.fromString(messageId),feedId,messageType,"", new DateTime(cTime),cUserId,collectNum,updateNum,updateNumD,
         forwardNum,forwardNumD,likeNum,unLikeNum,readNum,updateType,threshHold,isAnonymous,imgUrls,fuzzyImgs,
-        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId)
+        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId,linkTitle,linkImg,linkUrl)
       }.flatMap {
       msgs => Future.collect(msgs.map {
         msg => select.where(_.messageId eqs msg.messageId).get().map {
           case Some(t) => MessageInfo(msg.messageId, msg.feedId, msg.messageType, t.content, msg.cTime, msg.cUserId,
             msg.collectNum, msg.updateNum, msg.updateNumD, msg.forwardNum, msg.forwardNumD, msg.likeNum, msg.unLikeNum,
             msg.readNum, msg.updateType, msg.threshHold, msg.isAnonymous, msg.imgUrls, msg.fuzzyImgs,
-            msg.updateLevel, msg.isDelete, msg.groupId, msg.mImgs, msg.isTop, msg.isRecommend, msg.replyMsgId, msg.replyUserId)
+            msg.updateLevel, msg.isDelete, msg.groupId, msg.mImgs, msg.isTop, msg.isRecommend, msg.replyMsgId,
+            msg.replyUserId, msg.linkTitle, msg.linkImg, msg.linkUrl)
           case None => msg
         }
       })
@@ -1108,16 +1186,29 @@ abstract class ConcreteMessageInfos(val client: MysqlClient, val redisClient: Cl
           case StringValue(str) => str
           case _ => ""
         }.get
+       val linkTitle = row("linkTitle").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+        val linkImg = row("linkImg").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+         val linkUrl = row("linkUrl").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
         MessageInfo(UUID.fromString(messageId),feedId,messageType,"", new DateTime(cTime),cUserId,collectNum,updateNum,updateNumD,
         forwardNum,forwardNumD,likeNum,unLikeNum,readNum,updateType,threshHold,isAnonymous,imgUrls,fuzzyImgs,
-        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId)
+        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId,linkTitle,linkImg,linkUrl)
       }.flatMap {
       msgs => Future.collect(msgs.map {
         msg => select.where(_.messageId eqs msg.messageId).get().map {
           case Some(t) => MessageInfo(msg.messageId, msg.feedId, msg.messageType, t.content, msg.cTime, msg.cUserId,
             msg.collectNum, msg.updateNum, msg.updateNumD, msg.forwardNum, msg.forwardNumD, msg.likeNum, msg.unLikeNum,
             msg.readNum, msg.updateType, msg.threshHold, msg.isAnonymous, msg.imgUrls, msg.fuzzyImgs,
-            msg.updateLevel, msg.isDelete, msg.groupId, msg.mImgs, msg.isTop, msg.isRecommend, msg.replyMsgId, msg.replyUserId)
+            msg.updateLevel, msg.isDelete, msg.groupId, msg.mImgs, msg.isTop, msg.isRecommend, msg.replyMsgId,
+            msg.replyUserId, msg.linkTitle, msg.linkImg, msg.linkUrl)
           case None => msg
         }
       })
@@ -1239,16 +1330,29 @@ abstract class ConcreteMessageInfos(val client: MysqlClient, val redisClient: Cl
           case StringValue(str) => str
           case _ => ""
         }.get
+       val linkTitle = row("linkTitle").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+        val linkImg = row("linkImg").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
+         val linkUrl = row("linkUrl").map {
+          case StringValue(str) => str
+          case _ => ""
+        }.get
         MessageInfo(UUID.fromString(messageId),feedId,messageType,"", new DateTime(cTime),cUserId,collectNum,updateNum,updateNumD,
         forwardNum,forwardNumD,likeNum,unLikeNum,readNum,updateType,threshHold,isAnonymous,imgUrls,fuzzyImgs,
-        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId)
+        updateLevel,isDelete,groupId,mImgs,isTop,isRecommend,replyMsgId,replyUserId,linkTitle,linkImg,linkUrl)
       }.flatMap {
       msgs => Future.collect(msgs.map {
         msg => select.where(_.messageId eqs msg.messageId).get().map {
           case Some(t) => MessageInfo(msg.messageId, msg.feedId, msg.messageType, t.content, msg.cTime, msg.cUserId,
             msg.collectNum, msg.updateNum, msg.updateNumD, msg.forwardNum, msg.forwardNumD, msg.likeNum, msg.unLikeNum,
             msg.readNum, msg.updateType, msg.threshHold, msg.isAnonymous, msg.imgUrls, msg.fuzzyImgs,
-            msg.updateLevel, msg.isDelete, msg.groupId, msg.mImgs, msg.isTop, msg.isRecommend, msg.replyMsgId, msg.replyUserId)
+            msg.updateLevel, msg.isDelete, msg.groupId, msg.mImgs, msg.isTop, msg.isRecommend, msg.replyMsgId,
+            msg.replyUserId, msg.linkTitle, msg.linkImg, msg.linkUrl)
           case None => msg
         }
       })
@@ -1502,10 +1606,11 @@ abstract class ConcreteMessageInfos(val client: MysqlClient, val redisClient: Cl
       })
     }
   }
-    //获取评论点赞表情消息 opType 1 评论   2 消息点赞   3  评论点赞  4 消息表情  5评论回复
-    def getUserNoticeEm(userId: String, time: DateTime): Future[Seq[UserMsgNotice]] = {
-      val sql =
-        """
+
+  //获取评论点赞表情消息 opType 1 评论   2 消息点赞   3  评论点赞  4 消息表情  5评论回复
+  def getUserNoticeEm(userId: String, time: DateTime): Future[Seq[UserMsgNotice]] = {
+    val sql =
+      """
         SELECT * from (
         SELECT
         	messageInfos.messageId AS msgId,
@@ -1574,8 +1679,8 @@ abstract class ConcreteMessageInfos(val client: MysqlClient, val redisClient: Cl
         		AND emotionCommunicates.cTime > ?
         		AND messageInfos.messageType = 0) t
           where opUserId <> ?
-        """
-      client.prepare(sql).select[UserMsgNotice](userId,time.toDate,userId,time.toDate,userId,time.toDate,userId){ row =>
+      """
+    client.prepare(sql).select[UserMsgNotice](userId,time.toDate,userId,time.toDate,userId,time.toDate,userId){ row =>
        val msgId = row("msgId").map {
           case StringValue(str) => str
           case _ => ""
@@ -1627,18 +1732,18 @@ abstract class ConcreteMessageInfos(val client: MysqlClient, val redisClient: Cl
         UserMsgNotice(UUID.fromString(msgId),cUserId,cTime,"",imgUrls,circleId,opUserId,opTime,
         "",opContent,"",opType,UUID.fromString(mainMsgId))
     }.flatMap {
-        notices => Future.collect(notices.map {
-          notice =>select.where(_.messageId eqs notice.msgId).get().map {
-              case Some(msg) => msg.content
-              case None => ""
-            }.map {
-              msgContent => UserMsgNotice(notice.msgId, notice.cUserId, notice.cTime,
-                msgContent, notice.imgUrls, notice.circleId, notice.opUserId, notice.opTime, notice.opMsgId,
-                notice.opContent, notice.opImgUrls, notice.opType, notice.mainMsgId)
-            }
-        })
+      notices => Future.collect(notices.map {
+        notice => select.where(_.messageId eqs notice.msgId).get().map {
+          case Some(msg) => msg.content
+          case None => ""
+        }.map {
+          msgContent => UserMsgNotice(notice.msgId, notice.cUserId, notice.cTime,
+            msgContent, notice.imgUrls, notice.circleId, notice.opUserId, notice.opTime, notice.opMsgId,
+            notice.opContent, notice.opImgUrls, notice.opType, notice.mainMsgId)
+        }
+      })
 
-      }
     }
+  }
 
 }
